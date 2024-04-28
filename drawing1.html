@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+<head>
+<script src="https://d3js.org/d3.v6.min.js"></script>
+ <style>
+   .metrics {
+     margin: 20px auto;
+     display: flex;
+     width: 100%;
+     justify-content: center;
+   }
+
+
+   .metric-box {
+     padding: 20px;
+     border: 1px solid black;
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     gap: 7px;
+   }
+
+
+   #circuit-box {
+     width: 20px;
+     height: 10px;
+     background-color: #D5E8D4;
+     border: 1px solid #82B366;
+   }
+ </style>
+</head>
+
+
+<body>
+          <div id="diagramDisplayAreaOne"></div>
+
+
+ <div class="metrics">
+   <div class="metric-box">
+     <div id="circuit-box"></div>
+     <div id="metric-text">
+       <span id="num-outlets"></span>x Data outlets (<span id="num-feeds"></span>x feeds from processor plus <span
+         id="num-spares"></span> spares). CAT6 (or better)
+     </div>
+   </div>
+ </div>
+
+
+ <script>
+   // Function to generate the diagram
+   function generateDiagramOne(wide, tall, perPort, aspectRatio,doubleLine=false) {
+     d3.select('#num-feeds').text(4);
+     d3.select('#num-spares').text(6);
+
+
+     // Select the diagram display area and clear any previous content
+     const diagramArea = d3.select('#diagramDisplayAreaOne');
+     diagramArea.html('');
+     // Calculate cabinet width based on the aspect ratio
+     let [aspectWidth, aspectHeight] = aspectRatio.split(':').map(Number);
+     let cabinetWidth = 60 * aspectWidth / aspectHeight;
+     // Create the SVG element
+     const svg = diagramArea.append('svg')
+       .attr('viewBox', `0 0 ${wide * cabinetWidth} ${tall * 60}`)
+       .attr('preserveAspectRatio', 'xMidYMid meet')
+       .classed('svg-content-responsive', true);
+     // Apply geometric precision to shapes in SVG
+     svg.style('shape-rendering', 'geometricPrecision');
+     // Array of colors for each port
+     const portColors = [
+       '#E62326', '#F3722C', '#F9C74F', '#90BE6D', '#43A4AB', '#4B5EAC', '#C984B3', 'black', 'grey', 'dotted-black'
+     ];
+     // Define arrow markers for each port color
+     portColors.forEach(color => {
+       svg.append('defs').append('marker')
+         .attr('id', `arrowhead-${color}`)
+         .attr('markerWidth', '5')
+         .attr('markerHeight', '6')
+         .attr('refX', '5')
+         .attr('refY', '3')
+         .attr('orient', 'auto')
+         .attr('viewBox', '0 0 6 6')
+         .append('path')
+         .attr('d', 'M0,0 L6,3 L0,6')
+         .attr('fill', color === 'dotted-black' ? 'black' : color);
+     });
+     // Initialize cabinet numbering and counter
+     let currentCabinet = 1;
+     let cabinetCounter = 0;
+     // Define circle radius and green rectangle dimensions
+     const circleRadius = 4;
+     const greenRectWidth = cabinetWidth / 4;
+     const greenRectHeight = 10;
+     // Calculate middle rows for green box placement
+     const middleRow = Math.floor(tall / 2);
+     const upperMiddleRow = Math.ceil(tall / 2) - 1;
+     // Array to keep track of columns with the start of a port
+     let columnsWithPortStart = Array(wide).fill(false);
+     for (let i = 0; i < wide * tall; i++) {
+       let column = Math.floor(i / tall);
+       if (i % perPort === 0) {
+         columnsWithPortStart[column] = true;
+       }
+     }
+     // Line generator for Bezier curves
+     const lineGenerator = d3.line()
+       .curve(d3.curveBasis)
+       .x(d => d.x)
+       .y(d => d.y);
+     // Main loop to iterate over columns and rows
+     for (let x = 0; x < wide; x++) {
+       // Determine start and end points for iteration
+       let startY = x % 2 !== 0 ? 0 : tall - 1;
+       let endY = x % 2 !== 0 ? tall : -1;
+       let stepY = x % 2 !== 0 ? 1 : -1;
+       // Loop through each cabinet
+       for (let y = startY; y !== endY; y += stepY) {
+         // Logic for drawing cabinets, circles, and text labels
+         let portIndex = Math.floor((currentCabinet - 1) / perPort) % portColors.length;
+         let portColor = portColors[portIndex];
+         let isDotted = portColor === 'dotted-black';
+         let isLastCabinetInPort = cabinetCounter % perPort === perPort - 1 || currentCabinet === wide * tall;
+         const rect = svg.append('rect')
+           .attr('x', x * cabinetWidth)
+           .attr('y', y * 60)
+           .attr('width', cabinetWidth)
+           .attr('height', 60)
+           .attr('fill', 'none')
+           .attr('stroke', 'black')
+           .lower();
+         const circle = svg.append('circle')
+           .attr('cx', doubleLine ? (x * cabinetWidth + cabinetWidth / 2)+3 : (x * cabinetWidth + cabinetWidth / 2))
+           .attr('cy', y * 60 + 30)
+           .attr('r', circleRadius)
+           .attr('stroke', '#9673A6')
+           .attr('fill', '#E1D5E7')
+           .attr('stroke-width', 2);
+         svg.append('text')
+           .attr('x', x * cabinetWidth + 3)
+           .attr('y', y * 60 + 3)
+           .attr('fill', 'black')
+           .attr('font-size', '10px')
+           .attr('alignment-baseline', 'hanging')
+           .text(currentCabinet);
+         if (!isLastCabinetInPort && currentCabinet < wide * tall) {
+           let targetY = y + stepY;
+           // Vertical connections
+           if (targetY !== endY) {
+             let lineX = x * cabinetWidth + cabinetWidth / 2;
+             let lineY1 = y * 60 + 30 + (stepY === 1 ? circleRadius : -circleRadius);
+             let lineY2 = targetY * 60 + 30 + (stepY === 1 ? -circleRadius : circleRadius);
+             
+             let arowpoint1 = [
+               { x: lineX, y: lineY1 },
+               { x: lineX, y: lineY2 }
+             ];
+             let arowpoint2 = [
+               { x: lineX+5, y: lineY1 },
+               { x: lineX+5, y: lineY2 }
+             ];
+             // arrowhead line 
+             svg.append('path')
+               .attr('d', lineGenerator(arowpoint1))
+               .attr('stroke', isDotted ? 'black' : portColor)
+               .attr('stroke-width', 2)
+               .attr('stroke-dasharray', isDotted ? '4, 4' : '')
+               .attr('marker-end', `url(#arrowhead-${isDotted ? 'dotted-black' : portColor})`);
+                // arrowhead line
+              if(doubleLine){
+                svg.append('path')
+               .attr('d', lineGenerator(arowpoint2))
+               .attr('stroke', isDotted ? 'black' : portColor)
+               .attr('stroke-width', 2)
+               .attr('stroke-dasharray', isDotted ? '4, 4' : '')
+               .attr('marker-end', `url(#arrowhead-${isDotted ? 'dotted-black' : portColor})`);
+              }
+           } else {
+             // Horizontal connections at the end of a column
+             let lineY = y * 60 + 30;
+             let lineX1 = x * cabinetWidth + cabinetWidth / 2 + circleRadius;
+             let lineX2 = (x + 1) * cabinetWidth + cabinetWidth / 2 - circleRadius;
+             let points = [
+               { x: lineX1, y: lineY },
+               { x: lineX2, y: lineY }
+             ];
+             svg.append('path')
+               .attr('d', lineGenerator(points))
+               .attr('stroke', isDotted ? 'black' : portColor)
+               .attr('stroke-width', 2)
+               .attr('stroke-dasharray', isDotted ? '4, 4' : '')
+               .attr('marker-end', `url(#arrowhead-${isDotted ? 'dotted-black' : portColor})`);
+           }
+         }
+         // Increment cabinet count and check port ending
+         currentCabinet++;
+         cabinetCounter++;
+         if (cabinetCounter % perPort === 0 && currentCabinet <= wide * tall) {
+           cabinetCounter = 0;
+         }
+       }
+     }
+     // Separate loop for drawing lines from green boxes
+     for (let x = 0; x < wide; x++) {
+       if (columnsWithPortStart[x]) {
+         // Logic for drawing lines from green boxes
+         let greenBoxY = ((tall % 2 !== 0) ? middleRow : upperMiddleRow) * 60 + 30;
+         let greenBoxX = x * cabinetWidth + cabinetWidth - greenRectWidth / 2;
+         for (let y = 0; y < tall; y++) {
+           let cabinetIndex = x * tall + (x % 2 === 0 ? tall - y - 1 : y);
+           if (cabinetIndex % perPort === 0) {
+             let portIndex = Math.floor(cabinetIndex / perPort) % portColors.length;
+             let portColor = portColors[portIndex];
+             let isDotted = portColor === 'dotted-black';
+             let cabinetY = y * 60 + 30;
+             let cabinetX = x * cabinetWidth + cabinetWidth / 2;
+             let intermediateY = (x % 2 === 0) ? cabinetY + 15 : cabinetY - 15;
+             let offset = (x % 2 === 0) ? 10 : -10;
+             let adjustY = (x % 2 === 0 && y === upperMiddleRow) ? -20 : 0; // Adjust for upward lines starting at green box
+             let controlPoint1X = greenBoxX;
+             let controlPoint1Y = intermediateY + offset;
+             let controlPoint2X = greenBoxX - 10;
+             let controlPoint2Y = intermediateY + offset;
+             let controlPoint3X = cabinetX;
+             let controlPoint3Y = intermediateY + offset;
+             // Adjust the final Y coordinate to end at the circle's edge
+             let finalY = (x % 2 === 0) ? cabinetY + circleRadius : cabinetY - circleRadius;
+             let point1 = [
+               { x: greenBoxX, y: greenBoxY },
+               { x: controlPoint1X, y: controlPoint1Y }, // First control point
+               { x: controlPoint2X, y: controlPoint2Y }, // Second control point
+               { x: controlPoint3X, y: controlPoint3Y }, // Third control point
+               { x: cabinetX, y: finalY } // Adjusted endpoint
+             ];
+             // draw the 2nd curved line
+             let point2 = [
+               { x: greenBoxX+7, y: greenBoxY },
+               { x: controlPoint1X +7, y: controlPoint1Y+4 }, // First control point
+               { x: controlPoint2X +7, y: controlPoint2Y +3}, // Second control point
+               { x: controlPoint3X +7, y: controlPoint3Y +4}, // Third control point
+               { x: cabinetX +7, y: finalY } // Adjusted endpoint
+             ];
+
+
+             svg.append('path')
+               .attr('d', lineGenerator(point1))
+               .attr('stroke', isDotted ? 'black' : portColor)
+               .attr('stroke-width', 2)
+               .attr('stroke-dasharray', isDotted ? '4, 4' : '')
+               .attr('fill', 'none')
+               .attr('stroke-linecap', 'round')
+               .attr('stroke-linejoin', 'round')
+               .attr('marker-end', `url(#arrowhead-${isDotted ? 'dotted-black' : portColor})`);
+               //right curved line 
+
+
+             if(doubleLine){
+                svg.append('path')
+               .attr('d', lineGenerator(point2))
+               .attr('stroke', isDotted ? 'black' : portColor)
+               .attr('stroke-width', 2)
+               .attr('stroke-dasharray', isDotted ? '4, 4' : '')
+               .attr('fill', 'none')
+               .attr('stroke-linecap', 'round')
+               .attr('stroke-linejoin', 'round')
+               .attr('marker-end', `url(#arrowhead-${isDotted ? 'dotted-black' : portColor})`);
+             }
+           }
+         }
+       }
+     }
+     // Loop for drawing green rectangles on top of lines
+     let noOfBoxes = 0;
+     for (let x = 0; x < wide; x++) {
+       if (columnsWithPortStart[x]) {
+         let greenBoxY = ((tall % 2 !== 0) ? middleRow : upperMiddleRow) * 60 + 30 - greenRectHeight / 2;
+         let greenBoxX = x * cabinetWidth + cabinetWidth - greenRectWidth;
+         svg.append('rect')
+           .attr('x', greenBoxX)
+           .attr('y', greenBoxY)
+           .attr('width', greenRectWidth)
+           .attr('height', greenRectHeight)
+           .attr('fill', '#D5E8D4')
+           .attr('stroke', '#82B366')
+           .attr('stroke-width', 2);
+           noOfBoxes ++;
+       }
+     }
+         d3.select('#num-outlets').text(noOfBoxes);
+   }
+  
+generateDiagramOne(7, 8, 4, '16:9',true);
+   </script>
+
+
+</body>

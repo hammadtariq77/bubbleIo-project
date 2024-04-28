@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+<head>
+ <style>
+   body {
+     font-family: Arial, sans-serif;
+     background-color: #f4f4f4;
+     margin: 0;
+     padding: 0;
+     display: flex;
+     justify-content: center;
+   }
+
+
+   .container {
+     width: 90%;
+     max-width: 1000px;
+     margin-top: 20px;
+     padding: 20px;
+     background-color: white;
+     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+   }
+
+
+   #diagramDisplayArea {
+     min-height: 200px;
+     padding: 0;
+   }
+
+
+   .svg-content-responsive {
+     display: block;
+     /* SVG is inline by default, which can cause scaling issues */
+     max-width: 100%;
+     /* Limit the width to the parent container */
+     max-height: 600px;
+     /* Limit the height to 900px */
+     margin: auto;
+     /* Center the SVG if it's smaller than the parent container */
+   }
+ </style>
+ <script src="https://d3js.org/d3.v6.min.js"></script>
+</head>
+<body>
+    <div>
+        <div id="diagramDisplayArea"></div>
+
+
+ <div id="all-metrics"
+   style="display: flex; justify-content: space-around; align-items: center; width: 100%; max-width: 100%; flex-wrap: wrap;">
+ </div>
+    </div>
+
+ <script>
+   function generateMetricsBox(id, color) {
+     const metricsContainer = document.createElement("div");
+     metricsContainer.id = id;
+     Object.assign(metricsContainer.style, {
+       margin: "14px",
+       display: "flex",
+       justifyContent: "center",
+     });
+
+
+     const metricsBox = document.createElement("div");
+     Object.assign(metricsBox.style, {
+       padding: "14px",
+       border: "1px solid black",
+       display: "flex",
+       justifyContent: "space-between",
+       alignItems: "center",
+       gap: "7px",
+     });
+
+
+     const circuitBox = document.createElement("div");
+     Object.assign(circuitBox.style, {
+       height: "14px",
+       width: "28px",
+       backgroundColor: color,
+     });
+
+
+     const metricsText = document.createElement("div");
+     metricsText.textContent = "1x 20A electric feed";
+
+
+     metricsBox.appendChild(circuitBox);
+     metricsBox.appendChild(metricsText);
+
+
+     metricsContainer.appendChild(metricsBox);
+
+
+     return metricsContainer;
+   }
+
+
+   function generateMetrics() {
+     const container = document.getElementById("all-metrics");
+
+
+     const nodes = document.querySelectorAll('.circuit-box');
+     const seen = [];
+
+
+     nodes.forEach((node) => {
+       if (seen.includes(node.id)) return;
+
+
+       seen.push(node.id);
+
+
+       const metricsBox = generateMetricsBox(`metrics-${node.id}`, node.getAttribute('fill'));
+
+
+       container.appendChild(metricsBox);
+     });
+   }
+
+
+   // Function to generate the diagram
+   function generateDiagram(wide, tall, perPort, aspectRatio,doubleLine=false ) {
+     // Select the diagram display area and clear any previous content
+     const diagramArea = d3.select('#diagramDisplayArea');
+     diagramArea.html('');
+     // Calculate cabinet width based on the aspect ratio
+     let [aspectWidth, aspectHeight] = aspectRatio.split(':').map(Number);
+     let cabinetWidth = 60 * aspectWidth / aspectHeight;
+     // Create the SVG element
+     const svg = diagramArea.append('svg')
+       .attr('viewBox', `0 0 ${wide * cabinetWidth} ${tall * 60}`)
+       .attr('preserveAspectRatio', 'xMidYMid meet')
+       .classed('svg-content-responsive', true);
+     // Apply geometric precision to shapes in SVG
+     svg.style('shape-rendering', 'geometricPrecision');
+     // Array of colors for each port
+     const portColors = [
+     '#E62326', '#F3722C', '#F9C79F', '#90BE6D','#37BE6D','#37BE6D', '#7E7B52', '#84C3BE','#43A4AB','#924E7D', '#4B5EAC', 'black', 'grey', '#84C3BE','dotted-black'
+     ]// Define arrow markers for each port color
+     portColors.forEach(color => {
+   
+       svg.append('defs').append('marker')
+        .attr('id', `arrowhead-${color}`)
+         .attr('markerWidth', '5')
+          .attr('markerHeight', '6')
+          .attr('refX', '5')
+        .attr('refY', '3')
+         .attr('orient', 'auto')
+         .attr('viewBox', '0 0 6 6')
+         .append('path')
+         .attr('d', 'M0,0 L6,3 L0,6')
+         
+         .attr('fill', color === 'dotted-black' ? 'black' : color);
+    
+     });
+     // Initialize cabinet numbering and counter
+     let currentCabinet = 1;
+     let cabinetCounter = 0;
+     // Define circle radius and green rectangle dimensions
+     const circleRadius = 4;
+     const greenRectWidth = cabinetWidth / 4;
+     const greenRectHeight = 10;
+     // Calculate middle rows for green box placement
+     const middleRow = Math.floor(tall / 2);
+     const upperMiddleRow = Math.ceil(tall / 2) - 1;
+     // Array to keep track of columns with the start of a port
+     let columnsWithPortStart = Array(wide).fill(false);
+     for (let i = 0; i < wide * tall; i++) {
+       let column = Math.floor(i / tall);
+       if (i % perPort === 0) {
+         columnsWithPortStart[column] = true;
+       }
+     }
+     // Line generator for Bezier curves
+     const lineGenerator1 = d3.line()
+       .curve(d3.curveBasis)
+       .x(d => d.x)
+       .y(d => d.y);
+    
+
+
+     function drawCabinet(x, y, portColor, rect, curve, line,line2color) {
+       let greenBoxY = (y) * 60 + 50 - greenRectHeight / 2;
+       let greenBoxX = x * cabinetWidth + cabinetWidth / 2 - greenRectWidth - 10;
+       let startY = greenBoxY + greenRectHeight / 2;
+       let startX = x * cabinetWidth + cabinetWidth / 2 - greenRectWidth / 2 - 2;
+       let endX = x * cabinetWidth + cabinetWidth / 2;
+       let endY = (y) * 60 + 30 + greenRectHeight / 2;
+       let controlX = (startX + endX) / 2 + 4;
+       let controlY = startY / 2 + endY / 2 + 4;
+       let startX1 = startX;
+       let startY1 = startY;
+       if (aspectRatio === '16:9') {
+         endX1 = endX + cabinetWidth / 2 + (greenRectWidth) + 12;
+        //  console.log(endX1, "endX1");
+       }
+       else {
+         endX1 = endX + cabinetWidth / 2 + (greenRectWidth) + 6;
+       }
+// this is left rectangle that is on every first cabinent or box
+
+       if (rect === 1) {
+        
+           svg.append('rect')
+             .attr('class', 'circuit-box')
+             .attr('id', `circuit-box-${portColor}`)
+             .attr('x', greenBoxX)
+             .attr('y', greenBoxY)
+             
+             .attr('width', greenRectWidth)
+             .attr('height', greenRectHeight)
+             .attr('fill', portColor)
+             .attr('stroke', portColor)
+            
+             .attr('stroke-width', 2);
+
+
+
+//right rectangle that is on every first cabinent or box
+           if(doubleLine){
+            svg.append('rect')
+            
+            .attr('class', 'circuit-box')
+            .attr('id', `circuit-box-${line2color}`)
+            .attr('x', greenBoxX+40)
+            .attr('y', greenBoxY)
+            .attr('width', greenRectWidth)
+            .attr('height', greenRectHeight)
+            .attr('fill', line2color   )
+            .attr('stroke', line2color)
+            .attr('stroke-width', 2);
+            
+           }
+             
+       }
+     
+       if (curve === 1) {
+         svg.append('path')
+           .attr('d', `M${startX},${startY} Q${controlX},${controlY} ${endX},${endY}`)
+           .attr('fill', 'none')
+           .attr('stroke', portColor)
+           .attr('stroke-width', 2);
+
+
+
+
+//its a curve line that is on every right first cabinent or box
+        if(doubleLine){
+          svg.append('path')
+           .attr('d', `M${startX+40},${startY+4 } Q${controlX},${controlY} ${endX},${endY}`)
+           .attr('fill', 'none')
+           .attr('stroke', line2color)
+           .attr('stroke-width', 2);
+           
+// it is the code of arrowhead and line
+
+
+          //  svg.append('path')
+          //       //  .attr('d', lineGenerator1(points1))
+          //       //  .attr('stroke', isDotted ? 'black' : portColor)
+          //       //  .attr('stroke-width', 2)
+          //      //  .attr('stroke-dasharray', isDotted ? '4, 4' : '')
+          //        .attr('marker-end', `url(#arrowhead-${isDotted ? 'dotted-black' : portColor})`);
+           
+          
+        }
+       }
+      
+     }
+     function drawArrowhead(color) {
+       const defs = svg.append('defs');
+       defs.append('marker')
+         .attr('id', 'arrowhead')
+         .attr('markerWidth', '5')
+         .attr('markerHeight', '6')
+         .attr('refX', '0')
+         .attr('refY', '2')
+         .attr('orient', 'auto')
+         .append('polygon')
+         .attr('points', '0 0, 5 2, 0 4')
+         .attr('fill', color);
+     }
+     function createArrowheadMarker(svg, color) {
+       const markerId = `arrowhead-${color.replace('#', '')}`; // Create a unique ID based on color
+
+       //it is top line arrow that is curved 
+       const defs = svg.append('defs');
+       defs.append('marker')
+         .attr('id', markerId)
+         .attr('markerWidth', '5')
+         .attr('markerHeight', '6')
+         .attr('refX', '0')
+         .attr('refY', '2')
+         .attr('orient', 'auto')
+         .append('polygon')
+         .attr('points', '0 0, 5 2, 0 4')
+         .attr('fill', color);
+       return markerId;
+     }
+     function drawCabinetspecial(x, y, portColor, num, temp1) {
+       let greenBoxY = (y) * 60 + 50 - greenRectHeight / 2;
+       let greenBoxX = x * cabinetWidth + cabinetWidth / 2 - greenRectWidth - 10;
+       let startY = greenBoxY + greenRectHeight / 2;
+       let startX = x * cabinetWidth + cabinetWidth / 2 - greenRectWidth / 2 - 2;
+       let endX = x * cabinetWidth + cabinetWidth / 2;
+       let endY = (y) * 60 + 30 + greenRectHeight / 2 + 5;
+       let controlX = (startX + endX) / 2 + 4;
+       let controlY = startY / 2 + endY / 2 + 4;
+       if (aspectRatio === '16:9') {
+         endX1 = endX + cabinetWidth / 2 + (greenRectWidth) + 12;
+       }
+       else {
+         endX1 = endX + cabinetWidth / 2 + (greenRectWidth) + 6;
+       }
+       let startX1 = startX;
+       let startY1 = startY;
+
+//top boxes rectangle
+       if (num === 1) {
+         svg.append('rect')
+           .attr('class', 'circuit-box')
+           .attr('id', `circuit-box-${portColor}`)
+           .attr('x', greenBoxX)
+           .attr('y', greenBoxY)
+           .attr('width', greenRectWidth)
+           .attr('height', greenRectHeight)
+           .attr('fill', portColor)
+           .attr('stroke', portColor)
+
+        
+       }
+   
+
+     
+       const markerId = createArrowheadMarker(svg, portColor);
+       svg.append('path')
+       // its top row arrow
+       //here i change arrow to down
+         .attr('d', `M${startX},${startY} Q${controlX+3},${controlY+6} ${endX},${endY+5 }`)
+         .attr('fill', 'none')
+         .attr('stroke', portColor)
+         .attr('stroke-width', 2)
+         .attr('marker-end', `url(#${markerId})`);
+       if (num === 1 && temp1 === 1) {
+        
+         // Define the arrowhead marker
+         //top line arrow
+         svg.append('path')
+           .attr('d', `M ${startX1},${startY1} L ${endX1},${startY1}`)
+           .attr('fill', portColor)
+           .attr('stroke', portColor)
+           .attr('stroke-width', 4)
+       }
+     }
+     function findLargestMultiple(number, limit) {
+       // Calculate the largest multiple
+       let largestMultiple = Math.floor(limit / number) * number;
+       if (largestMultiple === 0) {
+         largestMultiple = perPort - 1;
+       }
+       return largestMultiple;
+     }
+     let rowsCoveredByLines = 0;
+     let coveredRowsSet = new Set();
+     let overallPortCounter = 0;
+     // Main loop to iterate over columns and rows
+     let coveredRows = 0;
+     let z = 0;
+     totalCount = 0;
+     portIndex = 0;
+      portIndex2 = 0;
+     while (coveredRows < tall) {
+       // Update startY and endY for each iteration
+       let startY = tall - 1 - coveredRows;
+       let endY = tall - Math.min(tall, coveredRows + perPort) - 1;
+       console.log(startY, endY, "startY,endY");
+       difference = startY - endY;
+       console.log(difference, "difference");
+       z = z + 1
+       console.log(endY, z, "endY,z");
+       //x= x+maxCabinetHeight;
+       console.log(coveredRows, "coveredRows-initial");
+       console.log("tall", tall);
+       let portColor = portColors[portIndex];
+       let line2color = portColors[portIndex2];
+    
+       // coveredRows=coveredRows+difference;
+       // console.log("reporting diff and length to coverRows before",difference,lengthToCover);
+       if (difference >= perPort) {
+         lengthToCover = perPort - 1;
+       }
+       else (lengthToCover = findLargestMultiple(difference, perPort));
+       console.log("reporting diff and length to coverRows after", difference, lengthToCover);
+       let twoCount = 0;
+       let rowsx = 0;
+       let res = 0;
+       for (let x = 0; x < wide; x++) {
+         let stepY = -1;
+         let count = 0;
+         let rowno = 0;
+         if (overallPortCounter >= lengthToCover || overallPortCounter === 0) {
+           overallPortCounter = 0; // Reset the counter
+           portIndex = (portIndex + 1) % portColors.length; // Increment and wrap around portIndex
+           portColor = portColors[portIndex]; // Update portColor based on new portIndex
+        
+          portIndex2 = (portIndex2 +3) % portColors.length;
+          line2color = portColors[portIndex2];
+          
+         }
+         y = startY;
+         if (difference > 2) {
+           let temp = 0;
+           drawCabinet(x, y, portColor, 1, 1, 0,line2color);
+         }
+         if (difference === 2) {
+           //let temp=1;
+           //twoCount++;
+           let rowsunderCover = lengthToCover / 2;
+           if (overallPortCounter % 2 === 0 && overallPortCounter !== 0) {
+             rowsx++;
+             console.log(rowsx, "rowsX");
+           }
+           if (overallPortCounter === 0) {
+             rowsx = 0;
+             res = 0;
+             console.log(rowsx, "rowsX");
+           }
+           console.log(rowsx, "rowsX");
+           result = Math.floor(lengthToCover / 4);
+           console.log("result inside diffe=2", result);
+           let rect = twoCount % 2 === 1 ? 1 : 0;
+           let curve=twoCount % 2 === 0 ? 1 : 0;
+           let line=1
+           result = Math.floor(lengthToCover/4);
+           console.log("length to cover inside diff=2", lengthToCover);
+           if (rowsx % 2 === 1) {
+             let rect = 0;
+             let curve = 1;
+             let line = 0;
+             drawCabinet(x, y, portColor, rect, curve, line,line2color);
+           }
+           if (rowsx % 2 === 0) {
+             res++;
+             let rect = 1;
+             let curve = 1;
+             let line = 1;
+             if (res <= result && x < wide - 1) {
+               let rect = 1;
+               let curve = 1;
+               let line = 1;
+               drawCabinet(x, y, portColor, rect, curve, line,line2color);
+             }
+             else {
+               let rect = 1;
+               let curve = 1;
+               let line = 0;
+               drawCabinet(x, y, portColor, rect, curve, line,line2color);
+             }
+           }
+           twoCount++;
+           if (lengthToCover === overallPortCounter) {
+             twoCount = 0;
+           }
+           drawCabinet(x,y,portColor,rect,curve,line,line2color);
+         }
+         // Loop through each cabinet
+         for (let y = startY; y > endY; y += stepY) {
+           //let portIndex = x%
+           let isDotted = portColor === 'dotted-black';
+         
+           //box  or grid
+           const rect = svg.append('rect')
+             .attr('x', x * cabinetWidth)
+             .attr('y', y * 60)
+             .attr('width', cabinetWidth)
+             .attr('height', 60)
+             .attr('fill', 'none')
+             .attr('stroke', 'black')
+             .lower();
+            //  circle circuit
+            //circle left
+           const circleleft = svg.append('circle')
+             .attr('cx',( x * cabinetWidth + cabinetWidth / 2))
+             .attr('cy', y * 60 + 30)
+             .attr('r', circleRadius)
+             .attr('stroke', '#9673A6')
+             .attr('fill', '#E1D5E7')
+             .attr('stroke-width', 2);
+        
+
+
+           svg.append('text')
+           .attr('x', x * cabinetWidth + 3)
+           .attr('y', y * 60 + 3)
+           .attr('fill', 'black')
+           .attr('font-size', '10px')
+           .attr('alignment-baseline', 'hanging')
+           .text(currentCabinet);
+           console.log(difference, 'difference-f');
+           if (currentCabinet < wide * tall, difference > 1) {
+             count += 1;
+             overallPortCounter++;
+             let targetY = y + stepY;
+             // Vertical connections
+             if (targetY !== endY) {
+               totalCount += 1;
+               let lineX = x * cabinetWidth + cabinetWidth / 2;
+               let lineY1 = y * 60 + 30 + (stepY === 1 ? circleRadius : -circleRadius);
+               let lineY2 = targetY * 60 + 30 + (stepY === 1 ? -circleRadius : circleRadius);
+               let points1 = [
+                 { x:doubleLine ? lineX-2 :lineX, y: lineY1 },
+                 { x:doubleLine ? lineX-2 :lineX , y: lineY2 }
+               ];
+               let points2 = [
+                 { x: lineX+3, y: lineY1 },
+                 { x: lineX+3, y: lineY2 }
+               ];
+
+             
+
+               
+               svg.append('path')
+                 .attr('d', lineGenerator1(points1))
+                 .attr('stroke', isDotted ? 'black' : portColor)
+                 .attr('stroke-width', 2)
+                 .attr('stroke-dasharray', isDotted ? '4, 4' : '')
+                 .attr('marker-end', `url(#arrowhead-${isDotted ? 'dotted-black' : portColor})`);
+
+                 //right line or arrow 
+                  
+                   
+           
+
+                if(doubleLine){
+                  svg.append('path')
+                 .attr('d', lineGenerator1(points2))
+                 .attr('stroke', isDotted ? 'black' : line2color )
+                 .attr('stroke-width', 2)
+                 .attr('stroke-dasharray', isDotted ? '4, 4' : '')
+                 .attr('marker-end', `url(#arrowhead-${isDotted ? 'dotted-black' : line2color})`);
+     
+                 
+                }
+           
+             }
+           }
+           if (difference === 1) {
+             let y = 0;
+             let lineY = y * 60 + 30; // y-coordinate for the horizontal line, assuming 'y' is the row number
+             let count = 0;
+             let cableCover = Math.min(perPort - 1, 3);
+             let portindex = 0;
+             let count1 = 0;
+             let portindexs = 0;
+             for (let j = 0; j < wide; j++) {
+               portindexs = portindexs % 7;
+               portColor1 = portColors[portindexs];
+               console.log(portColor1, "color1")
+               num = 0;
+               if (!(count1 - cableCover === 0 || count1 % 2 === 1) && j !== wide - 1) {
+                 num = 1;
+                 drawCabinetspecial(j, y, portColor1, num, 1);
+                 // if(j===wide-3){
+                 //     drawCabinetspecial(j, y, portColor1,1,0);
+                 // }
+               }
+               if (j === wide - 1 || count1 === 2) {
+                 drawCabinetspecial(j, y, portColor1, 1, 0);
+               }
+               else { drawCabinetspecial(j, y, portColor1, num, 0); }
+               console.log("xxcable cover new code", cableCover)
+               if (count1 - cableCover === 0) {
+                 //count1 = 0; // Reset count and skip this column
+                 portindexs++;
+                 count1 = 0;
+                 continue;
+               }
+               count1++;
+             }
+
+
+           }
+           currentCabinet++;
+           cabinetCounter++;
+           if (cabinetCounter % perPort === 0 && currentCabinet <= wide * tall) {
+             cabinetCounter = 0;
+           }
+           console.log(cabinetCounter, 'cabinet');
+         }
+       }
+       //let x=0;
+       coveredRows = coveredRows + difference;
+       console.log(coveredRows, "covered-end");
+       //x= x+maxCabinetHeight;
+     }
+
+
+     generateMetrics();
+}
+      
+       generateDiagram(4, 7, 4, '16:9', true);
+
+       
+   </script>
+
+
+</body>
