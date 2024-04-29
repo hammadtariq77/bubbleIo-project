@@ -181,16 +181,38 @@
              let lineY = y * 60 + 30;
              let lineX1 = x * cabinetWidth + cabinetWidth / 2 + circleRadius;
              let lineX2 = (x + 1) * cabinetWidth + cabinetWidth / 2 - circleRadius;
-             let points = [
-               { x: lineX1, y: lineY },
-               { x: lineX2, y: lineY }
+             // first line
+             let horizonpoint1 = [
+               { x: doubleLine ? lineX1+2 :lineX1 , y: lineY-1 },
+               { x: doubleLine ? lineX2+2 :lineX2  , y: lineY-1 }
              ];
+              // second line
+              let horizonpoint2 = [
+               { x: doubleLine ? lineX1+2 :lineX1 , y: lineY+3 },
+               { x: doubleLine ? lineX2+2 :lineX2 , y: lineY+3  }
+             ];
+             // draw the 1st horizon line
              svg.append('path')
-               .attr('d', lineGenerator(points))
+               .attr('d', lineGenerator(horizonpoint1))
                .attr('stroke', isDotted ? 'black' : portColor)
                .attr('stroke-width', 2)
                .attr('stroke-dasharray', isDotted ? '4, 4' : '')
                .attr('marker-end', `url(#arrowhead-${isDotted ? 'dotted-black' : portColor})`);
+            
+                // draw the 2nd horizon line
+
+              if(doubleLine){
+                svg.append('path')
+               .attr('d', lineGenerator(horizonpoint2))
+               .attr('stroke', isDotted ? 'black' : portColor)
+               .attr('stroke-width', 2)
+               .attr('stroke-dasharray', isDotted ? '4, 4' : '')
+               .attr('marker-end', `url(#arrowhead-${isDotted ? 'dotted-black' : portColor})`);
+              }
+
+
+
+
            }
          }
          // Increment cabinet count and check port ending
@@ -290,7 +312,7 @@
          d3.select('#num-outlets').text(noOfBoxes);
    }
   
-generateDiagramOne(7, 8, 4, '16:9',true);
+generateDiagramOne(3, 3, 4, '16:9',true);
    </script>
 
 
