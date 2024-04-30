@@ -123,6 +123,7 @@
 
    // Function to generate the diagram
    function generateDiagram(wide, tall, perPort, aspectRatio,doubleLine=false ) {
+ 
      // Select the diagram display area and clear any previous content
      const diagramArea = d3.select('#diagramDisplayArea');
      diagramArea.html('');
@@ -156,6 +157,7 @@
          .attr('fill', color === 'dotted-black' ? 'black' : color);
     
      });
+  
      // Initialize cabinet numbering and counter
      let currentCabinet = 1;
      let cabinetCounter = 0;
@@ -193,6 +195,7 @@
        let controlY = startY / 2 + endY / 2 + 4;
        let startX1 = startX;
        let startY1 = startY;
+       console.log(  `M${startX},${startY-4} Q${controlX},${controlY} ${endX},${endY}`)
        if (aspectRatio === '16:9') {
          endX1 = endX + cabinetWidth / 2 + (greenRectWidth) + 12;
         //  console.log(endX1, "endX1");
@@ -207,13 +210,13 @@
            svg.append('rect')
              .attr('class', 'circuit-box')
              .attr('id', `circuit-box-${portColor}`)
-             .attr('x', greenBoxX+1)
+             .attr('x', greenBoxX)
              .attr('y', greenBoxY)
              
              .attr('width', greenRectWidth)
              .attr('height', greenRectHeight)
-             .attr('fill', portColor)
-             .attr('stroke', portColor)
+             .attr('fill', line2color)
+             .attr('stroke', line2color)
             
              .attr('stroke-width', 2);
 
@@ -225,61 +228,105 @@
             
             .attr('class', 'circuit-box')
             .attr('id', `circuit-box-${line2color}`)
-            .attr('x', greenBoxX+45)
+            .attr('x', greenBoxX+40)
             .attr('y', greenBoxY)
             .attr('width', greenRectWidth)
             .attr('height', greenRectHeight)
-            .attr('fill', line2color   )
-            .attr('stroke', line2color)
+            .attr('fill', portColor   )
+            .attr('stroke', portColor)
             .attr('stroke-width', 2);
             
            }
              
        }
      
-       if (curve === 1) {
+      
+
+
+
+ if (curve === 1) {
         //  svg.append('path')
-        //    .attr('d', `M${startX},${startY} Q${controlX},${controlY} ${endX},${endY}`)
+        //    .attr('d', `M${startX},${startY-4} Q${controlX},${controlY} ${endX},${endY}`)
         //    .attr('fill', 'none')
-        //    .attr('stroke', portColor)
+        //    .attr('stroke', line2color)
+           
         //    .attr('stroke-width', 2);
-        const markerId2 = createArrowheadMarker(svg, portColor);
-     
-       svg.append('path')
-         .attr('d', `M${startX},${startY} Q${controlX+2},${controlY+4} ${endX-2},${endY+8 }`)
-         .attr('fill', 'none')
-         .attr('stroke', portColor)
-         .attr('stroke-width', 2)
-         .attr('marker-end', `url(#${markerId2})`);
-
-
-
-
-//its a curve line that is on every right first cabinent or box
-   
-
-
-
-        if(doubleLine){
-          //  svg.append('path')
-          //  .attr('d', `M${startX+40},${startY+4 } Q${controlX},${controlY} ${endX},${endY}`)
-          //  .attr('fill', 'none')
-          //  .attr('stroke', line2color)
-          //  .attr('stroke-width', 2);
-
-
-          const markerId3 = createArrowheadMarker(svg, line2color);
+        const markerId2 = createArrowheadMarker(svg, line2color);
      
      svg.append('path')
-       .attr('d', `M${startX+45},${startY-3} Q${controlX+5},${controlY+8} ${endX+2},${endY+9 }`)
-       .attr('fill', 'none')
+       .attr('d', `M${startX},${startY} Q${controlX+2},${controlY+4} ${endX-2},${endY+8 }`)
+       .attr('fill', line2color)
        .attr('stroke', line2color)
        .attr('stroke-width', 2)
+       .attr('marker-end', `url(#${markerId2})`);
+//its a curve line that is on every right first cabinent or box
+        if(doubleLine){
+          // svg.append('path')
+          //  .attr('d', `M${startX+40},${startY+4 } Q${controlX},${controlY} ${endX},${endY}`)
+          //  .attr('fill', 'none')
+          //  .attr('stroke', portColor)
+          //  .attr('stroke-width', 2);
+         const markerId3 = createArrowheadMarker(svg, portColor);
+     
+     svg.append('path')
+       .attr('d', `M${startX+45},${startY} Q${controlX+6},${controlY+15} ${endX+2},${endY+9 }`)
+       .attr('fill', portColor)
+       .attr('stroke', portColor)
+       .attr('stroke-width', 2)
        .attr('marker-end', `url(#${markerId3})`);
+   
+          
           
           
         }
        }
+
+
+       if (curve === 2) {
+         svg.append('path')
+           .attr('d', `M${startX-5},${startY-3} Q${controlX},${controlY} ${endX},${endY}`)
+           .attr('fill', 'none')
+           .attr('stroke', line2color)
+           .attr('stroke-width', 2);
+  //its a curve line that is on every right first cabinent or box
+        if(doubleLine){
+          svg.append('path')
+           .attr('d', `M${startX-4},${startY+5 } Q${controlX+6},${controlY+5} ${endX+4},${endY-3}`)
+           .attr('fill', 'none')
+           .attr('stroke', portColor)
+           .attr('stroke-width', 2);
+          
+          
+        }
+       }
+
+
+    //  its the horizontal line on top 
+        if (line === 1) {
+         svg.select('#arrowhead polygon').attr('fill', line2color);
+         // Define the arrowhead marker
+         const defs = svg.append('defs');
+         svg.append('path')
+           .attr('d', `M ${startX1},${startY1-3} L ${endX1},${startY1-3}`)
+           .attr('fill', 'line2color')
+           .attr('stroke', line2color)
+           .attr('stroke-width', 2)
+
+           //second line
+           if(doubleLine){
+            svg.select('#arrowhead polygon').attr('fill',portColor);
+         // Define the arrowhead marker
+         const defs = svg.append('defs');
+         svg.append('path')
+           .attr('d', `M ${startX1+20},${startY1+5} L ${endX1-4},${startY1+5}`)
+           .attr('fill', 'portColor')
+           .attr('stroke', portColor)
+           .attr('stroke-width', 2)
+           }
+       }  
+
+
+
       
      }
      function drawArrowhead(color) {
@@ -295,13 +342,11 @@
          .attr('points', '0 0, 5 2, 0 4')
          .attr('fill', color);
      }
-     function createArrowheadMarker(svg, color) {
+     function createArrowheadMarker(svg,color) {
        const markerId = `arrowhead-${color.replace('#', '')}`; // Create a unique ID based on color
-       
 
        //it is top line arrow that is curved 
        const defs = svg.append('defs');
-     
        defs.append('marker')
          .attr('id', markerId)
          .attr('markerWidth', '5')
@@ -314,7 +359,7 @@
          .attr('fill', color);
        return markerId;
      }
-     function drawCabinetspecial(x, y, portColor, num, temp1) {
+     function drawCabinetspecial(x, y, portColor, num, temp1,line2color) {
        let greenBoxY = (y) * 60 + 50 - greenRectHeight / 2;
        let greenBoxX = x * cabinetWidth + cabinetWidth / 2 - greenRectWidth - 10;
        let startY = greenBoxY + greenRectHeight / 2;
@@ -348,27 +393,44 @@
        }
    
 
+       // its top row arrow
+       //here curve btw arrowhead and horizon 
      
        const markerId = createArrowheadMarker(svg, portColor);
-      //  console.log(markerId, "markerId");
        svg.append('path')
-       // its top row arrow
-       //here i change arrow to down
-         .attr('d', `M${startX},${startY} Q${controlX+3},${controlY+6} ${endX},${endY+5 }`)
+         .attr('d', `M${startX},${startY-2} Q${controlX},${controlY+2} ${endX-3},${endY+4 }`)
          .attr('fill', 'none')
          .attr('stroke', portColor)
          .attr('stroke-width', 2)
-        
          .attr('marker-end', `url(#${markerId})`);
+         // second arrow
+       if(doubleLine){
+        const markerIdX = createArrowheadMarker(svg, line2color);
+        
+        svg.append('path')
+         .attr('d', `M${startX+1},${startY+3} Q${controlX+5},${controlY+10} ${endX+2},${endY+4 }`)
+         .attr('fill', 'none')
+         .attr('stroke', line2color)
+         .attr('stroke-width', 2)
+         .attr('marker-end', `url(#${markerIdX})`);
+       }
        if (num === 1 && temp1 === 1) {
         
          // Define the arrowhead marker
          //top line arrow
          svg.append('path')
-           .attr('d', `M ${startX1},${startY1} L ${endX1},${startY1}`)
+           .attr('d', `M ${startX1},${startY1-2} L ${endX1},${startY1-2}`)
            .attr('fill', portColor)
            .attr('stroke', portColor)
-           .attr('stroke-width', 4)
+           .attr('stroke-width', 2)
+           // sencond line in case 1 
+           if(doubleLine){
+            svg.append('path')
+           .attr('d', `M ${startX1},${startY1+3} L ${endX1},${startY1+3}`)
+           .attr('fill', line2color)
+           .attr('stroke', line2color)
+           .attr('stroke-width', 2)
+           }
        }
      }
      function findLargestMultiple(number, limit) {
@@ -445,18 +507,22 @@
              console.log(rowsx, "rowsX");
            }
            console.log(rowsx, "rowsX");
-           result = Math.floor(lengthToCover / 4);
+           result = Math.floor(lengthToCover / 2);
            console.log("result inside diffe=2", result);
-           let rect = twoCount % 2 === 1 ? 1 : 0;
-           let curve=twoCount % 2 === 0 ? 1 : 0;
-           let line=1
-           result = Math.floor(lengthToCover/4);
+          //  let rect = twoCount % 2 === 1 ? 1 : 0;
+          //  let curve=twoCount % 2 === 0 ? 1 : 0;
+          //  let line=1
+          //  result = Math.floor(lengthToCover/4);
            console.log("length to cover inside diff=2", lengthToCover);
-           if (rowsx % 2 === 1) {
+           let check =rowsx % 2 === 1;
+           if (check) {
              let rect = 0;
-             let curve = 1;
+             let curve = 2;
              let line = 0;
-             drawCabinet(x, y, portColor, rect, curve, line,line2color);
+           
+
+             
+            drawCabinet(x, y, portColor, rect, curve, line,line2color);
            }
            if (rowsx % 2 === 0) {
              res++;
@@ -464,10 +530,18 @@
              let curve = 1;
              let line = 1;
              if (res <= result && x < wide - 1) {
+              // 4 5 3  checkline for no line
                let rect = 1;
                let curve = 1;
-               let line = 1;
-               drawCabinet(x, y, portColor, rect, curve, line,line2color);
+            
+              //  if(){
+
+               //  let line = 1;
+           //    }
+            //   else{
+                 let line = 1;
+             //  }
+             drawCabinet(x, y, portColor, rect, curve, line,line2color);
              }
              else {
                let rect = 1;
@@ -480,7 +554,7 @@
            if (lengthToCover === overallPortCounter) {
              twoCount = 0;
            }
-           drawCabinet(x,y,portColor,rect,curve,line,line2color);
+          // drawCabinet(x,y,portColor,rect,curve,line,line2color);
          }
          // Loop through each cabinet
          for (let y = startY; y > endY; y += stepY) {
@@ -497,7 +571,7 @@
              .attr('stroke', 'black')
              .lower();
             //  circle circuit
-            
+            //circle left
            const circleleft = svg.append('circle')
              .attr('cx',( x * cabinetWidth + cabinetWidth / 2))
              .attr('cy', y * 60 + 30)
@@ -515,11 +589,15 @@
            .attr('font-size', '10px')
            .attr('alignment-baseline', 'hanging')
            .text(currentCabinet);
+
+
+           
            console.log(difference, 'difference-f');
            if (currentCabinet < wide * tall, difference > 1) {
              count += 1;
              overallPortCounter++;
              let targetY = y + stepY;
+
              // Vertical connections
              if (targetY !== endY) {
                totalCount += 1;
@@ -540,10 +618,10 @@
                
                svg.append('path')
                  .attr('d', lineGenerator1(points1))
-                 .attr('stroke', isDotted ? 'black' : portColor)
+                 .attr('stroke', isDotted ? 'black' : line2color)
                  .attr('stroke-width', 2)
                  .attr('stroke-dasharray', isDotted ? '4, 4' : '')
-                 .attr('marker-end', `url(#arrowhead-${isDotted ? 'dotted-black' : portColor})`);
+                 .attr('marker-end', `url(#arrowhead-${isDotted ? 'dotted-black' : line2color})`);
 
                  //right line or arrow 
                   
@@ -553,10 +631,10 @@
                 if(doubleLine){
                   svg.append('path')
                  .attr('d', lineGenerator1(points2))
-                 .attr('stroke', isDotted ? 'black' : line2color )
+                 .attr('stroke', isDotted ? 'black' : portColor )
                  .attr('stroke-width', 2)
                  .attr('stroke-dasharray', isDotted ? '4, 4' : '')
-                 .attr('marker-end', `url(#arrowhead-${isDotted ? 'dotted-black' : line2color})`);
+                 .attr('marker-end', `url(#arrowhead-${isDotted ? 'dotted-black' : portColor})`);
      
                  
                 }
@@ -569,28 +647,38 @@
              let count = 0;
              let cableCover = Math.min(perPort - 1, 3);
              let portindex = 0;
+             let portindex2 = 0;
              let count1 = 0;
              let portindexs = 0;
+             let portindexs2 = 0;
              for (let j = 0; j < wide; j++) {
                portindexs = portindexs % 7;
+               portindexs2 = portindexs2 % 5;
+               line2color1=portColors[portindexs];
                portColor1 = portColors[portindexs];
-               console.log(portColor1, "color1")
+               console.log(portColor1, "color1",line2color)
                num = 0;
-               if (!(count1 - cableCover === 0 || count1 % 2 === 1) && j !== wide - 1) {
+               let check2=!(count1 - cableCover === 0 || count1 % 2 === 1) && j !== wide - 1
+               if (check2) {
                  num = 1;
-                 drawCabinetspecial(j, y, portColor1, num, 1);
+               
+                 // j=2 y=0
+                 drawCabinetspecial(j, y, portColor1, 1, 1,line2color);
                  // if(j===wide-3){
-                 //     drawCabinetspecial(j, y, portColor1,1,0);
+                 //    drawCabinetspecial(j, y, portColor1,1,0);
                  // }
                }
-               if (j === wide - 1 || count1 === 2) {
-                 drawCabinetspecial(j, y, portColor1, 1, 0);
+               //this check shows last rectangle fix the rectangle to - 1 from wide
+               if (j === wide  || count1 === 2) {
+                drawCabinetspecial(j, y, portColor1, 1, 0,line2color);
                }
-               else { drawCabinetspecial(j, y, portColor1, num, 0); }
+               else {
+                 drawCabinetspecial(j, y, portColor1, num, 0,line2color); }
                console.log("xxcable cover new code", cableCover)
                if (count1 - cableCover === 0) {
                  //count1 = 0; // Reset count and skip this column
                  portindexs++;
+                  portindexs2++;
                  count1 = 0;
                  continue;
                }
@@ -617,7 +705,7 @@
      generateMetrics();
 }
       
-       generateDiagram(9, 7, 8, '16:9', true);
+       generateDiagram(4, 6, 4, '16:9',true );
 
        
    </script>
