@@ -126,8 +126,11 @@
         const diagramArea = d3.select("#diagramDisplayArea");
         diagramArea.html("");
         // Calculate cabinet width based on the aspect ratio
+        let boxsizecheck= aspectRatio === "16:9"
+        
         let [aspectWidth, aspectHeight] = aspectRatio.split(":").map(Number);
-        let cabinetWidth = (60 * aspectWidth) / aspectHeight;
+        let cabinetWidth =  boxsizecheck ?  60 * aspectWidth / aspectHeight :100 * aspectWidth / aspectHeight;
+        console.log(boxsizecheck, "cabinetWidth");
         // Create the SVG element
         const svg = diagramArea
           .append("svg")
@@ -273,7 +276,7 @@
 
                 .attr("class", "circuit-box")
                 .attr("id", `circuit-box-${line2color}`)
-                .attr("x", ratiocheck2 ? greenBoxX+31 : greenBoxX+40)
+                .attr("x", greenBoxX+40)
                 .attr("y", greenBoxY)
                 .attr("width", greenRectWidth)
                 .attr("height", greenRectHeight)
@@ -292,7 +295,7 @@
                 .attr(
                   "d",
                   `M${startX},${startY} Q${controlX - 1},${controlY + 4} ${
-                    endX - 2
+                    endX - 3
                   },${endY + 8}`
                 )
                 .attr("fill", "none")
@@ -325,8 +328,8 @@
                   .append("path")
                   .attr(
                     "d",
-                    `M${ratiocheck2 ? startX + 30 :startX+40},${startY} Q${controlX + 5},${ratiocheck2 ?
-                      controlY + 10 :7
+                    `M${ratiocheck2 ? startX + 40 :startX+40},${startY-5} Q${controlX + 9},${ratiocheck2 ?
+                      controlY + 16 :7
                     } ${endX + 4},${endY + 8}`
                   )
                   .attr("fill", "none")
@@ -340,9 +343,9 @@
                   .append("path")
                   .attr(
                     "d",
-                    `M${startX + 45},${startY} Q${controlX + 6},${
+                    `M${startX + 40},${startY-4} Q${controlX + 10},${
                       controlY + 15
-                    } ${endX + 2},${endY + 9}`
+                    } ${endX + 4},${endY + 8}`
                   )
                   .attr("fill", "none")
                   .attr("stroke", portColor)
@@ -510,7 +513,7 @@
               .append("path")
               .attr(
                 "d",
-                `M${startX},${startY} Q${controlX},${controlY} ${endX - 1},${
+                `M${startX },${startY} Q${controlX},${controlY} ${endX -2.5},${
                   endY + 3
                 }`
               )
@@ -546,7 +549,7 @@
                     "d",
                     `M${startX + 45},${startY + 4} Q${
                       controlX + 5
-                    },${controlY} ${endX + 4},${endY + 4}`
+                    },${controlY} ${endX + 2.5},${endY + 4}`
                   )
                   .attr("fill", "none")
                   .attr("stroke", line2color)
@@ -559,8 +562,8 @@
                   .append("path")
                   .attr(
                     "d",
-                    `M${startX + 45},${startY + 3} Q${controlX + 5},${
-                      controlY + 10
+                    `M${startX + 45},${startY + 3} Q${controlX + 6},${
+                      controlY +6
                     } ${endX + 2},${endY + 4}`
                   )
                   .attr("fill", "none")
@@ -577,9 +580,9 @@
                   .append("path")
                   .attr(
                     "d",
-                    `M${startX -5},${startY + 2.7} Q${controlX + 3},${
+                    `M${startX -5},${startY + 4} Q${controlX + 3},${
                       controlY + 8
-                    } ${endX + 3},${endY + 3}`
+                    } ${endX + 2},${endY + 3}`
                   )
                   .attr("fill", "none")
                   .attr("stroke", line2color)
@@ -614,7 +617,7 @@
                 "d",
                 `M ${startX1},${
                   ratiocheck ? startY1-1 : startY1 - 2
-                } L ${endX1},${ratiocheck ? startY1 : startY1 - 2}`
+                } L ${ratiocheck ? endX1+5 :endX1},${ratiocheck ? startY1 : startY1 - 2}`
               )
               .attr("fill", portColor)
               .attr("stroke", portColor)
@@ -625,7 +628,7 @@
                 .append("path")
                 .attr(
                   "d",
-                  `M ${startX1 + 40},${ratiocheck ? startY1+4 :startY1+2} L ${endX1},${ratiocheck ? startY1+3 :startY1+3}`
+                  `M ${startX1 + 30},${ratiocheck ? startY1+4.8 :startY1+2} L ${endX1},${ratiocheck ? startY1+4 :startY1+3}`
                 )
                 .attr("fill", line2color)
                 .attr("stroke", line2color)
@@ -923,7 +926,7 @@
         generateMetrics();
       }
 
-      generateDiagram(4, 5, 4, "1:1", true);
+      generateDiagram(4, 5, 4, "8:9", true);
     </script>
   </body>
 </html>
