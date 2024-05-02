@@ -28,6 +28,7 @@
      height: 10px;
      background-color: #D5E8D4;
      border: 1px solid #82B366;
+    
    }
  </style>
 </head>
@@ -59,10 +60,11 @@
      const diagramArea = d3.select('#diagramDisplayAreaOne');
      diagramArea.html('');
      // Calculate cabinet width based on the aspect ratio
+     let check = aspectRatio === '16:9';
      let [aspectWidth, aspectHeight] = aspectRatio.split(':').map(Number);
-     let cabinetWidth = 60 * aspectWidth / aspectHeight;
+     let cabinetWidth = check ? 60 * aspectWidth / aspectHeight :80 * aspectWidth / aspectHeight;
      // Create the SVG element
-     const svg = diagramArea.append('svg')
+const svg = diagramArea.append('svg')
        .attr('viewBox', `0 0 ${wide * cabinetWidth} ${tall * 60}`)
        .attr('preserveAspectRatio', 'xMidYMid meet')
        .classed('svg-content-responsive', true);
@@ -198,7 +200,6 @@
                .attr('stroke-width', 2)
                .attr('stroke-dasharray', isDotted ? '4, 4' : '')
                .attr('marker-end', `url(#arrowhead-${isDotted ? 'dotted-black' : portColor})`);
-            
                 // draw the 2nd horizon line
 
               if(doubleLine){
@@ -312,7 +313,7 @@
          d3.select('#num-outlets').text(noOfBoxes);
    }
   
-generateDiagramOne(3, 3, 4, '16:9',true);
+generateDiagramOne(5, 4, 5, '8:9',true);
    </script>
 
 
